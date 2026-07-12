@@ -1,5 +1,7 @@
 #include "raylib.h"
+#include <iostream>
 #include <algorithm>
+#include <chrono>
 #include <limits>
 #include <queue>
 #include <unordered_map>
@@ -15,6 +17,8 @@ constexpr static int FPS       = 60;
 constexpr static int GRID_SIZE = 32;
 constexpr static int ROWS = WIDTH  / GRID_SIZE;
 constexpr static int COLS = HEIGHT / GRID_SIZE;
+
+Color AWHITE{255, 255, 255, 100}; 
 
 // Entity class to make it easy to work with raylib, treat grid cells as objects that are easy to position and draw
 class Entity
@@ -69,7 +73,7 @@ struct Point
    int y;
 };
 
-using pointVec = std::vector<Point>; 
+using PointVec = std::vector<Point>; 
 
 // Node struct used for AStart calculations
 struct Node
@@ -107,6 +111,8 @@ int gridIndex(float x, float y)
 class AStar
 {
 public:
+   AStar() : m_delay(0), m_message(""), m_lastUpdate(std::chrono::steady_clock::now()), m_currentStep(0) {}
+   AStar(float delay) : AStar() { m_delay = delay; }
    // Diagonal movement directions
    constexpr static std::array<std::array<int, 2>, 8> dirs = {{
       {{-1, 0}},
@@ -120,10 +126,27 @@ public:
    }};
 
    void computeAStar(Player& p, Goal& g);
-   void drawPath()
+   void draw()
    {
-      for (const auto& c : m_path)
+      auto now = std::chrono::steady_clock::now();
+      auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastUpdate).count();
+
+      if (elapsed > m_delay && m_currentStep < m_path.size())
+      {
+         m_currentStep++;
+         m_lastUpdate = std::chrono::steady_clock::now();
+      }
+
+      for (size_t i = 0; i < m_currentStep; i++)
+      {
+         const auto& c = m_path[i];
          DrawRectangleRec({c.x * 1.0f * GRID_SIZE, c.y * 1.0f * GRID_SIZE, GRID_SIZE, GRID_SIZE}, WHITE);
+      }
+
+      for (const auto [index, obstacle] : m_obstacles)
+         obstacle.draw();
+
+      DrawText(m_message.c_str(), WIDTH / 2 - 100, 0, 30, RED);
    }
    void updateObstacles()
    {
@@ -135,24 +158,22 @@ public:
             m_obstacles.insert({gridIndex(mx, my), {mx, my, GRID_SIZE, GRID_SIZE, BLUE}});
       }
    }
-   void drawObstacles()
-   {
-      for (const auto [index, obstacle] : m_obstacles)
-         obstacle.draw();
-   }
    std::string_view getMessage() { return m_message; };
 private:
-   pointVec m_path;
-   std::string m_message;
+   PointVec m_path;
    std::unordered_map<int, Entity> m_obstacles;
+   float m_delay;
+   std::string m_message;
+   std::chrono::steady_clock::time_point m_lastUpdate;
+   size_t m_currentStep;
 };
 
 void drawGrid()
 {
    for (int i = 0; i < ROWS; i++)
    {
-      DrawLine(i * GRID_SIZE, 0, i * GRID_SIZE, HEIGHT, WHITE);
-      DrawLine(0, i * GRID_SIZE, WIDTH, i * GRID_SIZE, WHITE);
+      DrawLine(i * GRID_SIZE, 0, i * GRID_SIZE, HEIGHT, AWHITE);
+      DrawLine(0, i * GRID_SIZE, WIDTH, i * GRID_SIZE, AWHITE);
    }
 }
 
@@ -181,9 +202,9 @@ bool isOutsideGrid(const Node& node)
    return pos.x > ROWS - 1 || pos.x < 0 or pos.y > COLS - 1 || pos.y < 0;
 }
 
-std::vector<Point> reconstructPath(std::vector<Point>& parent, const Node& a, const Node& b)
+PointVec reconstructPath(PointVec& parent, const Node& a, const Node& b)
 {
-   std::vector<Point> path;
+   PointVec path;
    Point curr = b.pos;
    while (curr != a.pos)
    {
@@ -202,19 +223,20 @@ void AStar::computeAStar(Player& p, Goal& g)
 
    std::priority_queue<Node, std::vector<Node>, Node::Compare> open_set;
    std::vector<bool> closed_set(ROWS * COLS, false);
-   std::vector<int> g_score(ROWS * COLS, std::numeric_limits<int>::max());
-   std::vector<Point> parent(ROWS * COLS, {-1, -1});
+   std::vector<double> g_score(ROWS * COLS, std::numeric_limits<int>::max());
+   PointVec parent(ROWS * COLS, {-1, -1});
    std::vector<bool> walkable(ROWS * COLS, true);
+
+   m_path.clear();
+   m_message.clear();
+   m_currentStep = 0;
 
    for (const auto [index, obstacle] : m_obstacles)
       walkable[index] = false;
 
-   g_score[a.pos.y * COLS + a.pos.x] = 0;
+   g_score[a.pos.y * COLS + a.pos.x] = 0.0;
    a.f_score = octileDist(a, b);
    open_set.push(a);
-
-   m_path.clear();
-   m_message.clear();
 
    while (!open_set.empty())
    {
@@ -244,7 +266,7 @@ void AStar::computeAStar(Player& p, Goal& g)
             continue;
 
          bool isDiagonal = (dx != 0 && dy != 0);
-         int move_score = g_score[curr.pos.y * COLS + curr.pos.x] + (isDiagonal ? std::sqrt(2.0) : 1);
+         double move_score = g_score[curr.pos.y * COLS + curr.pos.x] + (isDiagonal ? std::sqrt(2.0) : 1);
          if (move_score < g_score[neigh.pos.y * COLS + neigh.pos.x])
          {
             parent[neigh.pos.y * COLS + neigh.pos.x] = curr.pos;
@@ -266,21 +288,21 @@ int main()
 
    Player p{0, 0, GRID_SIZE, GRID_SIZE, GREEN};
    Goal g{ GRID_SIZE * (ROWS - 1), GRID_SIZE * (COLS - 1), GRID_SIZE, GRID_SIZE, RED};
-   AStar astar;
+   AStar astar {50};
 
    while (!WindowShouldClose())
    {
       BeginDrawing();
+      ClearBackground(BLACK);
+
       if (updatePlayer(p)) // returns true if player position changed
          astar.computeAStar(p, g); // computes the path if possible
 
       drawGrid();
       astar.updateObstacles(); // adds obstacles with right click
-      astar.drawPath();
-      astar.drawObstacles();
+      astar.draw();
       g.draw();
       p.draw();
-      ClearBackground(BLACK);
       EndDrawing();
    }
 
