@@ -1,9 +1,7 @@
 #include "raylib.h"
 #include <algorithm>
-#include <iostream>
 #include <limits>
 #include <queue>
-#include <thread>
 #include <vector>
 #include <array>
 
@@ -11,8 +9,15 @@ constexpr static int WIDTH     = 1280;
 constexpr static int HEIGHT    = 1280;
 constexpr static int FPS       = 60;
 constexpr static int GRID_SIZE = 32;
-constexpr static int ROWS = WIDTH  / GRID_SIZE + 1;
-constexpr static int COLS = HEIGHT / GRID_SIZE + 1;
+constexpr static int ROWS = WIDTH  / GRID_SIZE;
+constexpr static int COLS = HEIGHT / GRID_SIZE;
+
+constexpr std::array<std::array<int, 2>, 4> dirs = {{
+{{-1,0}},
+{{1,0}},
+{{0,-1}},
+{{0,1}}
+}};
 
 class Entity
 {
@@ -55,6 +60,10 @@ public:
 
 struct Point
 {
+   constexpr bool operator==(const Point& b) const
+   {
+      return (this->x == b.x) && (this->y == b.y);
+   }
    int x;
    int y;
 };
@@ -107,22 +116,19 @@ int manhattanDist(const Node& a, const Node& b)
 bool isOutsideGrid(const Node& node)
 {
    Point pos = node.pos;
-   return pos.x > ROWS || pos.x < 0 or pos.y > COLS || pos.y < 0;
+   return pos.x > ROWS - 1 || pos.x < 0 or pos.y > COLS - 1 || pos.y < 0;
 }
 
-std::vector<Point> reconstructPath(std::vector<std::vector<Node>>& parent, const Node& a, const Node& b)
+std::vector<Point> reconstructPath(std::vector<Point>& parent, const Node& a, const Node& b)
 {
    std::vector<Point> path;
-
-   Node curr = b;
-
-   while (curr != a)
+   Point curr = b.pos;
+   while (curr != a.pos)
    {
-      path.push_back({curr.pos.x, curr.pos.y});
-      curr = parent[curr.pos.x][curr.pos.y];
+      path.push_back(curr);
+      curr = parent[curr.y * COLS + curr.x];
    }
-   
-   path.push_back({a.pos.x, a.pos.y});
+   path.push_back(a.pos);
    std::reverse(path.begin(), path.end());
    return path;
 }
@@ -133,26 +139,11 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
    Node b{{g.x(), g.y()}};
 
    std::priority_queue<Node, std::vector<Node>, Compare> open_set;
-   std::vector<std::vector<bool>> closed_set(
-         ROWS,
-         std::vector<bool>(COLS, false)
-   );
-   std::vector<std::vector<int>> g_score(
-         ROWS,  
-         std::vector<int>(COLS, std::numeric_limits<int>::max())
-   );
-   std::vector<std::vector<Node>> parent(
-         ROWS,
-         std::vector<Node>(COLS, {{-1, -1}})
-   );
-   constexpr std::array<std::array<int, 2>, 4> dirs = {{
-      {{-1,0}},
-      {{1,0}},
-      {{0,-1}},
-      {{0,1}}
-   }};
+   std::vector<bool> closed_set(ROWS * COLS, false);
+   std::vector<int> g_score(ROWS * COLS, std::numeric_limits<int>::max());
+   std::vector<Point> parent(ROWS * COLS, {-1, -1});
 
-   g_score[a.pos.x][a.pos.y] = 0;
+   g_score[a.pos.y * COLS + a.pos.x] = 0;
    a.f_score = manhattanDist(a, b);
    open_set.push(a);
 
@@ -161,13 +152,13 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
       Node curr = open_set.top();
       open_set.pop();
 
-      if (curr.f_score != g_score[curr.pos.x][curr.pos.y] + manhattanDist(curr, b))
+      if (curr.f_score != g_score[curr.pos.y * COLS + curr.pos.x] + manhattanDist(curr, b))
          continue;
 
       if (curr == b)
          return reconstructPath(parent, a, b);
 
-      closed_set[curr.pos.x][curr.pos.y] = true;
+      closed_set[curr.pos.y * COLS + curr.pos.x] = true;
       
       for (auto [dx, dy] : dirs)
       {
@@ -176,16 +167,15 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
          if (isOutsideGrid(neigh))
             continue;
 
-         if (closed_set[neigh.pos.x][neigh.pos.y])
+         if (closed_set[neigh.pos.y * COLS + neigh.pos.x])
             continue;
 
-         int move_score = g_score[curr.pos.x][curr.pos.y] + 1;
-         if (move_score < g_score[neigh.pos.x][neigh.pos.y])
+         int move_score = g_score[curr.pos.y * COLS + curr.pos.x] + 1;
+         if (move_score < g_score[neigh.pos.y * COLS + neigh.pos.x])
          {
-            parent[neigh.pos.x][neigh.pos.y] = curr;
-            g_score[neigh.pos.x][neigh.pos.y] = move_score;
-
-            neigh.f_score = g_score[neigh.pos.x][neigh.pos.y] + manhattanDist(neigh, b);
+            parent[neigh.pos.y * COLS + neigh.pos.x] = curr.pos;
+            g_score[neigh.pos.y * COLS + neigh.pos.x] = move_score;
+            neigh.f_score = g_score[neigh.pos.y * COLS + neigh.pos.x] + manhattanDist(neigh, b);
             open_set.push(neigh);
          }
       }
@@ -200,7 +190,7 @@ int main()
    InitWindow(WIDTH, HEIGHT, "AStar");
    SetTargetFPS(FPS);
 
-   Player p{-1, -1, GRID_SIZE, GRID_SIZE, GREEN};
+   Player p{0, 0, GRID_SIZE, GRID_SIZE, GREEN};
    Goal g{ 10 * GRID_SIZE, 20 * GRID_SIZE, GRID_SIZE, GRID_SIZE, RED};
    auto res = computeAStar(p, g);
 
