@@ -2,9 +2,12 @@
 #include <algorithm>
 #include <limits>
 #include <queue>
+#include <unordered_map>
 #include <vector>
 #include <array>
 #include <cmath>
+#include <string>
+#include <string_view>
 
 constexpr static int WIDTH     = 1280;
 constexpr static int HEIGHT    = 1280;
@@ -13,17 +16,7 @@ constexpr static int GRID_SIZE = 32;
 constexpr static int ROWS = WIDTH  / GRID_SIZE;
 constexpr static int COLS = HEIGHT / GRID_SIZE;
 
-constexpr std::array<std::array<int, 2>, 8> dirs = {{
-   {{-1, 0}},
-   {{1, 0}},
-   {{0, -1}},
-   {{0, 1}},
-   {{-1, 1}},
-   {{-1, -1}},
-   {{1, 1}},
-   {{1, -1}},
-}};
-
+// Entity class to make it easy to work with raylib, treat grid cells as objects that are easy to position and draw
 class Entity
 {
 public:
@@ -37,7 +30,7 @@ public:
       rect.y = y;
    }
 
-   void draw() 
+   void draw() const 
    {
       DrawRectangleRec(rect, col);
    }
@@ -49,6 +42,7 @@ private:
    Color col;
 };
 
+// Player, for now nothing special wrt base class
 class Player : public Entity
 {
 public:
@@ -56,6 +50,7 @@ public:
       Entity(x, y, width, height, color) {}
 };
 
+// Goal, for now nothing special wrt base class
 class Goal : public Entity
 {
 public:
@@ -63,6 +58,7 @@ public:
       Entity(x, y, width, height, color) {}
 };
 
+//Point to represent coordinates on grid. Raylib uses float and I want to work with integers easily
 struct Point
 {
    constexpr bool operator==(const Point& b) const
@@ -73,6 +69,9 @@ struct Point
    int y;
 };
 
+using pointVec = std::vector<Point>; 
+
+// Node struct used for AStart calculations
 struct Node
 {
    Node(Point p) : pos(p), f_score(0) {}
@@ -80,16 +79,72 @@ struct Node
    {
       return (this->pos.x == b.pos.x) && (this->pos.y == b.pos.y);
    }
+   struct Compare
+   {
+      bool operator()(const Node& a, const Node& b)
+      {
+         return a.f_score > b.f_score;
+      }
+   };
    Point pos;
    double f_score;
 };
 
-struct Compare
+std::pair<float, float> getMouseGridPos()
 {
-   bool operator()(const Node& a, const Node& b)
+   float x = static_cast<float>((GetMouseX() / GRID_SIZE) * GRID_SIZE);
+   float y = static_cast<float>((GetMouseY() / GRID_SIZE) * GRID_SIZE);
+   return {x, y};
+}
+
+int gridIndex(float x, float y)
+{
+   int iX = static_cast<int>(x) / GRID_SIZE;
+   int iY = static_cast<int>(y) / GRID_SIZE;
+   return iY * COLS + iX;
+}
+
+class AStar
+{
+public:
+   // Diagonal movement directions
+   constexpr static std::array<std::array<int, 2>, 8> dirs = {{
+      {{-1, 0}},
+      {{1, 0}},
+      {{0, -1}},
+      {{0, 1}},
+      {{-1, 1}},
+      {{-1, -1}},
+      {{1, 1}},
+      {{1, -1}},
+   }};
+
+   void computeAStar(Player& p, Goal& g);
+   void drawPath()
    {
-      return a.f_score > b.f_score;
+      for (const auto& c : m_path)
+         DrawRectangleRec({c.x * 1.0f * GRID_SIZE, c.y * 1.0f * GRID_SIZE, GRID_SIZE, GRID_SIZE}, WHITE);
    }
+   void updateObstacles()
+   {
+      if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+      {
+         auto [mx, my] = getMouseGridPos();
+         int idx = gridIndex(mx, my);
+         if (m_obstacles.find(idx) == m_obstacles.end())
+            m_obstacles.insert({gridIndex(mx, my), {mx, my, GRID_SIZE, GRID_SIZE, BLUE}});
+      }
+   }
+   void drawObstacles()
+   {
+      for (const auto [index, obstacle] : m_obstacles)
+         obstacle.draw();
+   }
+   std::string_view getMessage() { return m_message; };
+private:
+   pointVec m_path;
+   std::string m_message;
+   std::unordered_map<int, Entity> m_obstacles;
 };
 
 void drawGrid()
@@ -105,8 +160,7 @@ bool updatePlayer(Player& p)
 {
    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
    {
-      float newX = static_cast<float>((GetMouseX() / GRID_SIZE) * GRID_SIZE);
-      float newY = static_cast<float>((GetMouseY() / GRID_SIZE) * GRID_SIZE);
+      auto [newX, newY] = getMouseGridPos();
       p.setPosition(newX, newY);
       return true;
    }
@@ -141,19 +195,26 @@ std::vector<Point> reconstructPath(std::vector<Point>& parent, const Node& a, co
    return path;
 }
 
-std::vector<Point> computeAStar(Player& p, Goal& g)
+void AStar::computeAStar(Player& p, Goal& g)
 {
    Node a{{p.x(), p.y()}};
    Node b{{g.x(), g.y()}};
 
-   std::priority_queue<Node, std::vector<Node>, Compare> open_set;
+   std::priority_queue<Node, std::vector<Node>, Node::Compare> open_set;
    std::vector<bool> closed_set(ROWS * COLS, false);
    std::vector<int> g_score(ROWS * COLS, std::numeric_limits<int>::max());
    std::vector<Point> parent(ROWS * COLS, {-1, -1});
+   std::vector<bool> walkable(ROWS * COLS, true);
+
+   for (const auto [index, obstacle] : m_obstacles)
+      walkable[index] = false;
 
    g_score[a.pos.y * COLS + a.pos.x] = 0;
    a.f_score = octileDist(a, b);
    open_set.push(a);
+
+   m_path.clear();
+   m_message.clear();
 
    while (!open_set.empty())
    {
@@ -164,7 +225,11 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
          continue;
 
       if (curr == b)
-         return reconstructPath(parent, a, b);
+      {
+         m_message = "Path found!";
+         m_path = reconstructPath(parent, a, b);
+         return;
+      }
 
       closed_set[curr.pos.y * COLS + curr.pos.x] = true;
       
@@ -172,7 +237,7 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
       {
          Node neigh{{curr.pos.x + dx, curr.pos.y + dy}};
 
-         if (isOutsideGrid(neigh))
+         if (isOutsideGrid(neigh) || !walkable[neigh.pos.y * COLS + neigh.pos.x])
             continue;
 
          if (closed_set[neigh.pos.y * COLS + neigh.pos.x])
@@ -189,7 +254,7 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
          }
       }
    }
-   return {};
+   m_message = "Path not found!";
 }
 
 int main()
@@ -200,25 +265,19 @@ int main()
    SetTargetFPS(FPS);
 
    Player p{0, 0, GRID_SIZE, GRID_SIZE, GREEN};
-   Goal g{ 10 * GRID_SIZE, 20 * GRID_SIZE, GRID_SIZE, GRID_SIZE, RED};
-   auto res = computeAStar(p, g);
+   Goal g{ GRID_SIZE * (ROWS - 1), GRID_SIZE * (COLS - 1), GRID_SIZE, GRID_SIZE, RED};
+   AStar astar;
 
    while (!WindowShouldClose())
    {
       BeginDrawing();
-      drawGrid();
-      
-      bool recompute = updatePlayer(p);
-      if (recompute) 
-      {
-         res = computeAStar(p, g);
-         recompute = false;
-      }
-      for (const auto& c : res)
-      {
-         DrawRectangleRec({c.x * 1.0f * GRID_SIZE, c.y * 1.0f * GRID_SIZE, GRID_SIZE, GRID_SIZE}, WHITE);
-      }
+      if (updatePlayer(p)) // returns true if player position changed
+         astar.computeAStar(p, g); // computes the path if possible
 
+      drawGrid();
+      astar.updateObstacles(); // adds obstacles with right click
+      astar.drawPath();
+      astar.drawObstacles();
       g.draw();
       p.draw();
       ClearBackground(BLACK);
