@@ -4,6 +4,7 @@
 #include <queue>
 #include <vector>
 #include <array>
+#include <cmath>
 
 constexpr static int WIDTH     = 1280;
 constexpr static int HEIGHT    = 1280;
@@ -12,11 +13,15 @@ constexpr static int GRID_SIZE = 32;
 constexpr static int ROWS = WIDTH  / GRID_SIZE;
 constexpr static int COLS = HEIGHT / GRID_SIZE;
 
-constexpr std::array<std::array<int, 2>, 4> dirs = {{
-{{-1,0}},
-{{1,0}},
-{{0,-1}},
-{{0,1}}
+constexpr std::array<std::array<int, 2>, 8> dirs = {{
+   {{-1, 0}},
+   {{1, 0}},
+   {{0, -1}},
+   {{0, 1}},
+   {{-1, 1}},
+   {{-1, -1}},
+   {{1, 1}},
+   {{1, -1}},
 }};
 
 class Entity
@@ -76,7 +81,7 @@ struct Node
       return (this->pos.x == b.pos.x) && (this->pos.y == b.pos.y);
    }
    Point pos;
-   int f_score;
+   double f_score;
 };
 
 struct Compare
@@ -108,9 +113,12 @@ bool updatePlayer(Player& p)
    return false;
 }
 
-int manhattanDist(const Node& a, const Node& b)
+double octileDist(const Node& a, const Node& b)
 {
-   return std::abs(a.pos.x - b.pos.x) + std::abs(a.pos.y - b.pos.y);
+   int dx = std::abs(a.pos.x - b.pos.x);
+   int dy = std::abs(a.pos.y - b.pos.y);
+
+   return std::sqrt(2.0) * std::min(dx, dy) + (std::max(dx, dy) - std::min(dx, dy));
 }
 
 bool isOutsideGrid(const Node& node)
@@ -144,7 +152,7 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
    std::vector<Point> parent(ROWS * COLS, {-1, -1});
 
    g_score[a.pos.y * COLS + a.pos.x] = 0;
-   a.f_score = manhattanDist(a, b);
+   a.f_score = octileDist(a, b);
    open_set.push(a);
 
    while (!open_set.empty())
@@ -152,7 +160,7 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
       Node curr = open_set.top();
       open_set.pop();
 
-      if (curr.f_score != g_score[curr.pos.y * COLS + curr.pos.x] + manhattanDist(curr, b))
+      if (curr.f_score != g_score[curr.pos.y * COLS + curr.pos.x] + octileDist(curr, b))
          continue;
 
       if (curr == b)
@@ -170,12 +178,13 @@ std::vector<Point> computeAStar(Player& p, Goal& g)
          if (closed_set[neigh.pos.y * COLS + neigh.pos.x])
             continue;
 
-         int move_score = g_score[curr.pos.y * COLS + curr.pos.x] + 1;
+         bool isDiagonal = (dx != 0 && dy != 0);
+         int move_score = g_score[curr.pos.y * COLS + curr.pos.x] + (isDiagonal ? std::sqrt(2.0) : 1);
          if (move_score < g_score[neigh.pos.y * COLS + neigh.pos.x])
          {
             parent[neigh.pos.y * COLS + neigh.pos.x] = curr.pos;
             g_score[neigh.pos.y * COLS + neigh.pos.x] = move_score;
-            neigh.f_score = g_score[neigh.pos.y * COLS + neigh.pos.x] + manhattanDist(neigh, b);
+            neigh.f_score = g_score[neigh.pos.y * COLS + neigh.pos.x] + octileDist(neigh, b);
             open_set.push(neigh);
          }
       }
