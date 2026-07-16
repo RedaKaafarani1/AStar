@@ -1,6 +1,5 @@
 #include "Entity.h"
 #include "Common.h"
-#include <unordered_map>
 
 void Entity::shrink()
 {

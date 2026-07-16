@@ -1,6 +1,5 @@
 #include "Common.h"
 #include "Entity.h"
-#include <unordered_map>
 
 class AStar
 {

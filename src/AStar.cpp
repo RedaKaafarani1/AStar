@@ -1,6 +1,5 @@
 #include "AStar.h"
 #include "Common.h"
-#include <unordered_map>
 
 double octileDist(const Node& a, const Node& b)
 {
