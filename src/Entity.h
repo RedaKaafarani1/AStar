@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include <unordered_map>
 
 // Entity class to make it easy to work with raylib, treat grid cells as objects that are easy to position and draw
 class Entity
@@ -22,7 +23,7 @@ public:
    int y() const { return static_cast<int>(rect.y) / GRID_SIZE; }
    Vector2 pos() const { return {rect.x, rect.y}; } 
 
-   bool update();
+   bool update(const std::unordered_map<int, Entity>& obstacles);
    void shrink();
    void grow();
 

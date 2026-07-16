@@ -1,4 +1,6 @@
 #include "AStar.h"
+#include "Common.h"
+#include <unordered_map>
 
 double octileDist(const Node& a, const Node& b)
 {
@@ -6,12 +8,6 @@ double octileDist(const Node& a, const Node& b)
    int dy = std::abs(a.pos.y - b.pos.y);
 
    return std::sqrt(2.0) * std::min(dx, dy) + (std::max(dx, dy) - std::min(dx, dy));
-}
-
-bool isOutsideGrid(const Node& node)
-{
-   Point pos = node.pos;
-   return pos.x > ROWS - 1 || pos.x < 0 or pos.y > COLS - 1 || pos.y < 0;
 }
 
 void AStar::draw()
@@ -48,11 +44,13 @@ void AStar::draw()
    {
       const auto& s = m_path[i];
       const auto& e = m_path[i + 1];
+      // Draw line from center of first node to center of the next one
       Vector2 sPos = {s.x * GRID_SIZE * 1.0f + GRID_SIZE * 1.0f / 2, s.y * GRID_SIZE * 1.0f + GRID_SIZE * 1.0f / 2};
       Vector2 ePos = {e.x * GRID_SIZE * 1.0f + GRID_SIZE * 1.0f / 2, e.y * GRID_SIZE * 1.0f + GRID_SIZE * 1.0f / 2};
       DrawLineEx(sPos, ePos, 2.0f, WHITE);
    }
 
+   // Either we finished animating path or we did not find one, in which case m_currentStep + 1 will be > m_path.size() since it will be 0
    if ((m_currentStep + 1 >= m_path.size()))
       m_animationOver = true;
 
@@ -62,15 +60,20 @@ void AStar::draw()
    DrawText(m_message.c_str(), WIDTH / 2 - 150, 0, 30, RED);
 }
 
-void AStar::updateObstacles()
+const std::unordered_map<int, Entity>& AStar::updateObstacles()
 {
    if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
    {
       auto [mx, my] = getMouseGridPos();
       int idx = gridIndex(mx, my);
       if (m_obstacles.find(idx) == m_obstacles.end())
-         m_obstacles.insert({gridIndex(mx, my), {mx, my, GRID_SIZE, GRID_SIZE, BLUE, Entity::Type::Obstacle}});
+      {
+         // do not place outside grid (which can happen when in full screen mode)
+         if (!isOutsideGrid(mx, my))
+            m_obstacles.insert({idx, {mx, my, GRID_SIZE, GRID_SIZE, BLUE, Entity::Type::Obstacle}});
+      }
    }
+   return m_obstacles;
 }
 
 void AStar::reconstructPath(PointVec& parent, const Node& a, const Node& b)
@@ -136,7 +139,7 @@ void AStar::computeAStar(Entity& p, Entity& g)
 
       closed_set[currIdx] = true;
       
-      for (auto [dx, dy] : dirs)
+      for (auto [dx, dy] : DIAGDIRS)
       {
          Node neigh{{curr.pos.x + dx, curr.pos.y + dy}};
 

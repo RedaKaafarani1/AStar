@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "Entity.h"
 #include "AStar.h"
+#include <unordered_map>
 
 void drawGrid()
 {
@@ -21,21 +22,21 @@ int main()
    Entity p{0, 0, GRID_SIZE, GRID_SIZE, GREEN, Entity::Type::Start};
    Entity g{ GRID_SIZE * (ROWS - 1), GRID_SIZE * (COLS - 1), GRID_SIZE, GRID_SIZE, RED, Entity::Type::Goal};
    AStar astar {20};
+   std::unordered_map<int, Entity> obstacles;
 
    while (!WindowShouldClose())
    {
       BeginDrawing();
       ClearBackground(BLACK);
 
+      obstacles = astar.updateObstacles(); // adds obstacles with right click
+      bool playerPosUpdated = p.update(obstacles); // returns true if player position changed
+      bool goalPosUpdated   = g.update(obstacles);
       if (astar.isAnimationOver())
       {
-         bool playerPosUpdated = p.update(); // returns true if player position changed
-         bool goalPosUpdated   = g.update();
          if (playerPosUpdated || goalPosUpdated) astar.computeAStar(p, g); // computes the path if possible
       }
-
       drawGrid();
-      astar.updateObstacles(); // adds obstacles with right click
       astar.draw();
       g.draw();
       p.draw();
