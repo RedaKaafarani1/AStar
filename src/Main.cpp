@@ -29,11 +29,11 @@ int main()
       BeginDrawing();
       ClearBackground(BLACK);
 
-      obstacles = astar.updateObstacles(); // adds obstacles with right click
-      bool playerPosUpdated = p.update(obstacles); // returns true if player position changed
-      bool goalPosUpdated   = g.update(obstacles);
       if (astar.isAnimationOver())
       {
+         obstacles = astar.updateObstacles(); // adds obstacles with right click
+         bool playerPosUpdated = p.update(obstacles); // returns true if player position changed
+         bool goalPosUpdated   = g.update(obstacles);
          if (playerPosUpdated || goalPosUpdated) astar.computeAStar(p, g); // computes the path if possible
       }
       drawGrid();
