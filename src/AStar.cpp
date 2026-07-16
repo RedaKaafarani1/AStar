@@ -53,10 +53,10 @@ void AStar::draw()
       DrawLineEx(sPos, ePos, 2.0f, WHITE);
    }
 
-   if (m_currentStep + 1 == m_path.size())
+   if ((m_currentStep + 1 >= m_path.size()))
       m_animationOver = true;
 
-   for (const auto [index, obstacle] : m_obstacles)
+   for (auto [index, obstacle] : m_obstacles)
       obstacle.draw();
 
    DrawText(m_message.c_str(), WIDTH / 2 - 150, 0, 30, RED);
@@ -69,7 +69,7 @@ void AStar::updateObstacles()
       auto [mx, my] = getMouseGridPos();
       int idx = gridIndex(mx, my);
       if (m_obstacles.find(idx) == m_obstacles.end())
-         m_obstacles.insert({gridIndex(mx, my), {mx, my, GRID_SIZE, GRID_SIZE, BLUE}});
+         m_obstacles.insert({gridIndex(mx, my), {mx, my, GRID_SIZE, GRID_SIZE, BLUE, Entity::Type::Obstacle}});
    }
 }
 
@@ -85,7 +85,7 @@ void AStar::reconstructPath(PointVec& parent, const Node& a, const Node& b)
    std::reverse(m_path.begin(), m_path.end());
 }
 
-void AStar::computeAStar(Player& p, Goal& g)
+void AStar::computeAStar(Entity& p, Entity& g)
 {
    Node a{{p.x(), p.y()}};
    Node b{{g.x(), g.y()}};

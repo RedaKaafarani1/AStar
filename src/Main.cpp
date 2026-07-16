@@ -18,8 +18,8 @@ int main()
    InitWindow(WIDTH, HEIGHT, "AStar");
    SetTargetFPS(FPS);
 
-   Player p{0, 0, GRID_SIZE, GRID_SIZE, GREEN};
-   Goal g{ GRID_SIZE * (ROWS - 1), GRID_SIZE * (COLS - 1), GRID_SIZE, GRID_SIZE, RED};
+   Entity p{0, 0, GRID_SIZE, GRID_SIZE, GREEN, Entity::Type::Start};
+   Entity g{ GRID_SIZE * (ROWS - 1), GRID_SIZE * (COLS - 1), GRID_SIZE, GRID_SIZE, RED, Entity::Type::Goal};
    AStar astar {20};
 
    while (!WindowShouldClose())

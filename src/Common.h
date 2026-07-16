@@ -35,8 +35,6 @@ struct Point
    int y;
 };
 
-
-
 using PointVec = std::vector<Point>; 
 
 // Node struct used for AStart calculations

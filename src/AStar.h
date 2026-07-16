@@ -5,7 +5,7 @@ class AStar
 {
 public:
    struct SearchedEntry { Point pos; double f_score; };
-   AStar() : m_delay(0), m_message(""), m_lastUpdate(std::chrono::steady_clock::now()), m_currentStep(0), m_currentSearchStep(0), m_minMaxScore({0.0, 0.0}), m_animationOver(true) {}
+   AStar() : m_delay(0), m_message(""), m_lastUpdate(std::chrono::steady_clock::now()), m_currentStep(0), m_currentSearchStep(0), m_minMaxScore({0.0, 0.0}), m_animationOver(true){}
    AStar(float delay) : AStar() { m_delay = delay; }
    // Diagonal movement directions
    constexpr static std::array<std::array<int, 2>, 8> dirs = {{
@@ -19,7 +19,7 @@ public:
       {{1, -1}},
    }};
 
-   void computeAStar(Player& p, Goal& g);
+   void computeAStar(Entity& p, Entity& g);
    void draw();
    void updateObstacles();
    std::string_view getMessage() { return m_message; };

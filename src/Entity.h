@@ -5,9 +5,10 @@
 class Entity
 {
 public:
+   enum class Type { Start, Goal, Obstacle };
    Entity() : m_followMouse(false) {} 
-   Entity(float x, float y, float width, float height, Color color) :
-      rect(x, y, width, height), col(color) {}
+   Entity(float x, float y, float width, float height, Color color, Type type) :
+      rect(x, y, width, height), col(color), m_followMouse(false), m_type(type) {}
 
    void setPosition(float x, float y)
    {
@@ -15,32 +16,19 @@ public:
       rect.y = y;
    }
 
-   void draw() const { DrawRectangleRec(rect, col); }
+   void draw();
 
    int x() const { return static_cast<int>(rect.x) / GRID_SIZE; }
    int y() const { return static_cast<int>(rect.y) / GRID_SIZE; }
    Vector2 pos() const { return {rect.x, rect.y}; } 
 
    bool update();
+   void shrink();
+   void grow();
 
 private:
    Rectangle rect;
    Color col;
    bool m_followMouse;
-};
-
-// Player, for now nothing special wrt base class
-class Player : public Entity
-{
-public:
-   Player(float x, float y, float width, float height, Color color) :
-      Entity(x, y, width, height, color) {}
-};
-
-// Goal, for now nothing special wrt base class
-class Goal : public Entity
-{
-public:
-   Goal(float x, float y, float width, float height, Color color) :
-      Entity(x, y, width, height, color) {}
+   Type m_type;
 };

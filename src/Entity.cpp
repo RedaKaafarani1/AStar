@@ -1,4 +1,33 @@
 #include "Entity.h"
+#include "Common.h"
+
+void Entity::shrink()
+{
+   int newSize = GRID_SIZE * 0.9;
+   if (rect.width > newSize)
+   {
+      rect.width  -= (GRID_SIZE - newSize) / 2;
+      rect.height -= (GRID_SIZE - newSize) / 2;
+   }
+}
+
+void Entity::grow()
+{
+   if (rect.width < GRID_SIZE)
+   {
+      rect.width  += (GRID_SIZE - rect.width) / 2;
+      rect.height += (GRID_SIZE - rect.height) / 2;
+   }
+}
+
+void Entity::draw()
+{
+   if (m_followMouse)
+      shrink();
+   else
+      grow();
+   DrawRectangleRec(rect, col);
+}
 
 bool Entity::update()
 {
@@ -28,6 +57,5 @@ bool Entity::update()
       rect.x = mPos.x - GRID_SIZE * 1.0f / 2;
       rect.y = mPos.y - GRID_SIZE * 1.0f / 2;
    }
-
    return false;
 }
