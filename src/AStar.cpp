@@ -68,14 +68,26 @@ const std::unordered_map<int, Obstacle>& AStar::updateObstacles()
    {
       auto [mx, my] = getMouseGridPos();
       int idx = gridIndex(mx, my);
-      // Cannot place on existing obstacles 
-      if (m_obstacles.find(idx) == m_obstacles.end())
+
+      // Do not process this cell if already processed during this drag (drag valid until right mouse release below)
+      if (!m_processedThisDrag.contains(idx))
       {
+         auto it = m_obstacles.find(idx);
+         if (it != m_obstacles.end())
+            m_obstacles.erase(it);
+         else if (!isOutsideGrid(mx, my))
+         {
          // do not place outside grid (which can happen when in full screen mode)
-         if (!isOutsideGrid(mx, my))
             m_obstacles.insert({idx, {mx, my, GRID_SIZE, GRID_SIZE, BLUE}});
+         }
+         m_processedThisDrag.insert(idx);
       }
    }
+
+   // Finish drag, reset processed nodes
+   if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
+      m_processedThisDrag.clear();
+
    return m_obstacles;
 }
 

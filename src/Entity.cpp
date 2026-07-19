@@ -44,14 +44,8 @@ std::pair<float, float> getAvailablePosition(const std::unordered_map<int, Obsta
 bool Endpoint::update(const std::unordered_map<int, Obstacle>& obstacles)
 {
    // check if we are moving
-   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-   {
-      Vector2 mPos = GetMousePosition();
-      Vector2 pPos = pos();
-      if (mPos.x >= pPos.x && mPos.x <= pPos.x + GRID_SIZE &&
-          mPos.y >= pPos.y && mPos.y <= pPos.y + GRID_SIZE)
-         m_followMouse = true;
-   }
+   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && isHovered(pos()))
+      m_followMouse = true;
 
    //release player
    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && m_followMouse)

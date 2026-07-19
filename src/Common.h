@@ -13,6 +13,7 @@
 #include <cmath>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 
 constexpr static int WIDTH     = 1280;
 constexpr static int HEIGHT    = 1280;
@@ -93,4 +94,11 @@ inline bool isOutsideGrid(float x, float y)
    return x > GRID_SIZE * (ROWS - 1) || x < 0 || y > GRID_SIZE * (COLS - 1) || y < 0;
 }
 
-
+inline bool isHovered(Vector2 pos)
+{
+   Vector2 mPos = GetMousePosition();
+   if (mPos.x >= pos.x && mPos.x <= pos.x + GRID_SIZE &&
+       mPos.y >= pos.y && mPos.y <= pos.y + GRID_SIZE)
+      return true;
+   return false;
+}

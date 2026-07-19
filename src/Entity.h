@@ -28,7 +28,12 @@ protected:
 class Obstacle : public Entity
 {
 public:
-   Obstacle(float x, float y, float width, float height, Color color) : Entity(x, y, width, height, color) {}
+   Obstacle(float x, float y, float width, float height, Color color) : Entity(x, y, width, height, color), m_canBeDeleted(false) {}
+   void setCanBeDeleted(bool canBeDeleted) { m_canBeDeleted = canBeDeleted; }
+   bool getCanBeDeleted() const { return m_canBeDeleted; }
+
+private:
+   bool m_canBeDeleted;
 };
 
 // Class used for start/end nodes

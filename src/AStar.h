@@ -17,6 +17,7 @@ public:
 private:
    PointVec m_path;
    std::unordered_map<int, Obstacle> m_obstacles;
+   std::unordered_set<int> m_processedThisDrag;
    std::vector<SearchedEntry> m_searchedNodes;
    float m_delay;
    std::string m_message;
