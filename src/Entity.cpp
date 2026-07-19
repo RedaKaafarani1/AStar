@@ -1,35 +1,12 @@
 #include "Entity.h"
 #include "Common.h"
 
-void Entity::shrink()
-{
-   int newSize = GRID_SIZE * 0.9;
-   if (rect.width > newSize)
-   {
-      rect.width  -= (GRID_SIZE - newSize) / 2;
-      rect.height -= (GRID_SIZE - newSize) / 2;
-   }
-}
-
-void Entity::grow()
-{
-   if (rect.width < GRID_SIZE)
-   {
-      rect.width  += (GRID_SIZE - rect.width) / 2;
-      rect.height += (GRID_SIZE - rect.height) / 2;
-   }
-}
-
 void Entity::draw()
 {
-   if (m_followMouse)
-      shrink();
-   else
-      grow();
    DrawRectangleRec(rect, col);
 }
 
-std::pair<float, float> getAvailablePosition(const std::unordered_map<int, Entity>& obstacles)
+std::pair<float, float> getAvailablePosition(const std::unordered_map<int, Obstacle>& obstacles)
 {
    auto [mX, mY] = getMouseGridPos();
    int newIdx = gridIndex(mX, mY); 
@@ -64,7 +41,7 @@ std::pair<float, float> getAvailablePosition(const std::unordered_map<int, Entit
    return {0.0, 0.0};
 }
 
-bool Entity::update(const std::unordered_map<int, Entity>& obstacles)
+bool Endpoint::update(const std::unordered_map<int, Obstacle>& obstacles)
 {
    // check if we are moving
    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -93,4 +70,32 @@ bool Entity::update(const std::unordered_map<int, Entity>& obstacles)
       rect.y = mPos.y - GRID_SIZE * 1.0f / 2;
    }
    return false;
+}
+
+void Endpoint::draw()
+{
+   if (m_followMouse)
+      shrink();
+   else
+      grow();
+   DrawRectangleRec(rect, col);
+}
+
+void Endpoint::shrink()
+{
+   int newSize = GRID_SIZE * 0.9;
+   if (rect.width > newSize)
+   {
+      rect.width  -= (GRID_SIZE - newSize) / 2;
+      rect.height -= (GRID_SIZE - newSize) / 2;
+   }
+}
+
+void Endpoint::grow()
+{
+   if (rect.width < GRID_SIZE)
+   {
+      rect.width  += (GRID_SIZE - rect.width) / 2;
+      rect.height += (GRID_SIZE - rect.height) / 2;
+   }
 }

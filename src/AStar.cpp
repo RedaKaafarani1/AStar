@@ -14,12 +14,14 @@ void AStar::draw()
    auto now = std::chrono::steady_clock::now();
    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastUpdate).count();
 
+   // Path animation, starts when searched nodes animation ends
    if (elapsed > m_delay && (m_currentStep + 1 < m_path.size()) && m_currentSearchStep == m_searchedNodes.size())
    {
       m_currentStep++;
       m_lastUpdate = std::chrono::steady_clock::now();
    }
 
+   // Searched nodes animation
    if (!m_searchedNodes.empty())
    {
       if (elapsed > m_delay && m_currentSearchStep < m_searchedNodes.size())
@@ -32,6 +34,7 @@ void AStar::draw()
       double maxF = m_minMaxScore.second;
       for (size_t i = 0; i < m_currentSearchStep; i++)
       {
+         // Color depends on each nodes score
          auto& e = m_searchedNodes[i];
          float t = static_cast<float>((e.f_score - minF) / (maxF - minF + 0.0001));
          Color c = ColorLerp(BLUE, ORANGE, t);
@@ -59,17 +62,18 @@ void AStar::draw()
    DrawText(m_message.c_str(), WIDTH / 2 - 150, 0, 30, RED);
 }
 
-const std::unordered_map<int, Entity>& AStar::updateObstacles()
+const std::unordered_map<int, Obstacle>& AStar::updateObstacles()
 {
    if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
    {
       auto [mx, my] = getMouseGridPos();
       int idx = gridIndex(mx, my);
+      // Cannot place on existing obstacles 
       if (m_obstacles.find(idx) == m_obstacles.end())
       {
          // do not place outside grid (which can happen when in full screen mode)
          if (!isOutsideGrid(mx, my))
-            m_obstacles.insert({idx, {mx, my, GRID_SIZE, GRID_SIZE, BLUE, Entity::Type::Obstacle}});
+            m_obstacles.insert({idx, {mx, my, GRID_SIZE, GRID_SIZE, BLUE}});
       }
    }
    return m_obstacles;
@@ -87,7 +91,7 @@ void AStar::reconstructPath(PointVec& parent, const Node& a, const Node& b)
    std::reverse(m_path.begin(), m_path.end());
 }
 
-void AStar::computeAStar(Entity& p, Entity& g)
+void AStar::computeAStar(const Endpoint& p, const Endpoint& g)
 {
    Node a{{p.x(), p.y()}};
    Node b{{g.x(), g.y()}};
@@ -107,7 +111,7 @@ void AStar::computeAStar(Entity& p, Entity& g)
    m_minMaxScore = {0.0, 0.0};
    m_animationOver = false;
 
-   for (const auto [index, obstacle] : m_obstacles)
+   for (const auto &[index, obstacle] : m_obstacles)
       walkable[index] = false;
 
    g_score[a.pos.y * COLS + a.pos.x] = 0.0;

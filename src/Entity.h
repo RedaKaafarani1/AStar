@@ -5,10 +5,8 @@
 class Entity
 {
 public:
-   enum class Type { Start, Goal, Obstacle };
-   Entity() : m_followMouse(false) {} 
-   Entity(float x, float y, float width, float height, Color color, Type type) :
-      rect(x, y, width, height), col(color), m_followMouse(false), m_type(type) {}
+   Entity(float x, float y, float width, float height, Color color) :
+      rect(x, y, width, height), col(color){}
 
    void setPosition(float x, float y)
    {
@@ -16,19 +14,33 @@ public:
       rect.y = y;
    }
 
-   void draw();
+   virtual void draw();
 
    int x() const { return static_cast<int>(rect.x) / GRID_SIZE; }
    int y() const { return static_cast<int>(rect.y) / GRID_SIZE; }
    Vector2 pos() const { return {rect.x, rect.y}; } 
 
-   bool update(const std::unordered_map<int, Entity>& obstacles);
-   void shrink();
-   void grow();
-
-private:
+protected:
    Rectangle rect;
    Color col;
-   bool m_followMouse;
-   Type m_type;
 };
+
+class Obstacle : public Entity
+{
+public:
+   Obstacle(float x, float y, float width, float height, Color color) : Entity(x, y, width, height, color) {}
+};
+
+// Class used for start/end nodes
+class Endpoint : public Entity
+{
+public:
+   Endpoint(float x, float y, float width, float height, Color color) : Entity(x, y, width, height, color), m_followMouse(false) {}
+   virtual void draw();
+   bool update(const std::unordered_map<int, Obstacle>& obstacles);
+private:
+   void shrink();
+   void grow();
+   bool m_followMouse;
+};
+

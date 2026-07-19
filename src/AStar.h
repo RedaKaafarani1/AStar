@@ -7,16 +7,16 @@ public:
    struct SearchedEntry { Point pos; double f_score; };
    AStar() : m_delay(0), m_message(""), m_lastUpdate(std::chrono::steady_clock::now()), m_currentStep(0), m_currentSearchStep(0), m_minMaxScore({0.0, 0.0}), m_animationOver(true){}
    AStar(float delay) : AStar() { m_delay = delay; }
-   void computeAStar(Entity& p, Entity& g);
+   void computeAStar(const Endpoint& p, const Endpoint& g);
    void draw();
-   const std::unordered_map<int, Entity>& updateObstacles();
+   const std::unordered_map<int, Obstacle>& updateObstacles();
    std::string_view getMessage() { return m_message; };
    void reconstructPath(PointVec& parent, const Node& a, const Node& b);
    bool isAnimationOver() const { return m_animationOver; }
 
 private:
    PointVec m_path;
-   std::unordered_map<int, Entity> m_obstacles;
+   std::unordered_map<int, Obstacle> m_obstacles;
    std::vector<SearchedEntry> m_searchedNodes;
    float m_delay;
    std::string m_message;
