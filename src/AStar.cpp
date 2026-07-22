@@ -62,6 +62,17 @@ void AStar::draw()
    DrawText(m_message.c_str(), WIDTH / 2 - 150, 0, 30, RED);
 }
 
+void AStar::reset()
+{
+   m_path.clear();
+   m_searchedNodes.clear();
+   m_message.clear();
+   m_currentStep = 0;
+   m_currentSearchStep = 0;
+   m_minMaxScore = {0.0, 0.0};
+   m_animationOver = true;
+}
+
 const std::unordered_map<int, Obstacle>& AStar::updateObstacles()
 {
    if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
@@ -78,7 +89,7 @@ const std::unordered_map<int, Obstacle>& AStar::updateObstacles()
          else if (!isOutsideGrid(mx, my))
          {
          // do not place outside grid (which can happen when in full screen mode)
-            m_obstacles.insert({idx, {mx, my, GRID_SIZE, GRID_SIZE, BLUE}});
+            m_obstacles.insert({idx, {mx, my, GRID_SIZE, GRID_SIZE, RBLUE}});
          }
          m_processedThisDrag.insert(idx);
       }
@@ -114,6 +125,7 @@ void AStar::computeAStar(const Endpoint& p, const Endpoint& g)
    PointVec parent(ROWS * COLS, {-1, -1});
    std::vector<bool> walkable(ROWS * COLS, true);
    std::vector<bool> alreadyAdded(ROWS * COLS, false);
+   std::vector<size_t> searchedNodeIndex(ROWS * COLS, 0);
 
    m_path.clear();
    m_searchedNodes.clear();
@@ -175,8 +187,13 @@ void AStar::computeAStar(const Endpoint& p, const Endpoint& g)
             neigh.f_score = g_score[neighIdx] + octileDist(neigh, b);
             if (!alreadyAdded[neighIdx])
             {
+               searchedNodeIndex[neighIdx] = m_searchedNodes.size();
                m_searchedNodes.push_back({neigh.pos, neigh.f_score});
                alreadyAdded[neighIdx] = true;
+            }
+            else
+            {
+               m_searchedNodes[searchedNodeIndex[neighIdx]].f_score = neigh.f_score;
             }
             open_set.push(neigh);
          }

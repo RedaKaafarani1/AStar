@@ -9,6 +9,7 @@ public:
    AStar(float delay) : AStar() { m_delay = delay; }
    void computeAStar(const Endpoint& p, const Endpoint& g);
    void draw();
+   void reset();
    const std::unordered_map<int, Obstacle>& updateObstacles();
    std::string_view getMessage() { return m_message; };
    void reconstructPath(PointVec& parent, const Node& a, const Node& b);

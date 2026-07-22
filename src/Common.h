@@ -19,11 +19,13 @@ constexpr static int WIDTH     = 1280;
 constexpr static int HEIGHT    = 1280;
 constexpr static int FPS       = 60;
 constexpr static int GRID_SIZE = 32;
-constexpr static int ROWS = WIDTH  / GRID_SIZE;
-constexpr static int COLS = HEIGHT / GRID_SIZE;
+constexpr static int ROWS      = WIDTH  / GRID_SIZE;
+constexpr static int COLS      = HEIGHT / GRID_SIZE;
 
 inline Color AWHITE {255, 255, 255, 100}; 
-inline Color AYELLOW { 253, 249, 0, 100}; 
+inline Color RGREEN {125, 200, 85, 255};
+inline Color RRED   {212, 90, 116, 255};
+inline Color RBLUE {55, 120, 190, 255};
 
 // Diagonal movement directions
 constexpr static std::array<std::array<int, 2>, 8> DIAGDIRS= {{

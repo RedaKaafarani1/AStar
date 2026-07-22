@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "Entity.h"
 #include "AStar.h"
+#include <raylib.h>
 
 void drawGrid()
 {
@@ -20,9 +21,9 @@ int main()
    SetTargetFPS(FPS);
 
    //Start
-   Endpoint p{0, 0, GRID_SIZE, GRID_SIZE, GREEN};
+   Endpoint p{0, 0, GRID_SIZE, GRID_SIZE, RGREEN};
    // Goal
-   Endpoint g{ GRID_SIZE * (ROWS - 1), GRID_SIZE * (COLS - 1), GRID_SIZE, GRID_SIZE, RED };
+   Endpoint g{ GRID_SIZE * (ROWS - 1), GRID_SIZE * (COLS - 1), GRID_SIZE, GRID_SIZE, RRED };
 
    AStar astar {20};
    std::unordered_map<int, Obstacle> obstacles;
@@ -35,12 +36,14 @@ int main()
       // while animating, start/goal and obstacles cannot be updated
       if (astar.isAnimationOver())
       {
-         obstacles = astar.updateObstacles(); // adds obstacles with right click
-         bool playerPosUpdated = p.update(obstacles); // returns true if player position changed
-         bool goalPosUpdated   = g.update(obstacles);
-         if (playerPosUpdated || goalPosUpdated) astar.computeAStar(p, g); // computes the path if possible
+         obstacles = astar.updateObstacles();
+         bool update = p.update(obstacles) || g.update(obstacles);
+         if (update)
+            astar.reset();
+         if (IsKeyPressed(KEY_SPACE))
+            astar.computeAStar(p, g);
       }
-      
+
       //draw everything, order matters
       drawGrid();
       astar.draw();
