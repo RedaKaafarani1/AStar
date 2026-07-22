@@ -1,4 +1,4 @@
-# AStar
+# AStarVisualizer
 
 A visual A* pathfinding demo built with C++ and [raylib](https://www.raylib.com/) as a small project for fun!
 
